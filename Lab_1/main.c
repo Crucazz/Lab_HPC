@@ -49,6 +49,54 @@ int main(int argc, char *argv[])
   holaMundo(2);
   holaMundoFunc1(3);
 
+
+  
+/////////////////////////////////////////////////////
+//  INICIO:   LLenado inicial de la matriz
+/////////////////////////////////////////////////////
+  float *H1 = malloc(N*N*sizeof(float));
+  float *H2 = malloc(N*N*sizeof(float));
+  float *H3 = malloc(N*N*sizeof(float));
+
+  #pragma omp parallel shared(H1,H2,H3) num_threads(H)
+  {
+    #pragma omp for schedule(static, H) collapse(2)
+    for (int i = 0; i < N; i++)
+    {
+      for (int j = 0; j < N; j++)
+      {
+        if( 0.4*N < i && 0.6*N > i && 0.4*N < j && 0.6*N > j) 
+        {     
+          H1[i*N+j]=20;
+          H2[i*N+j]=20;
+          H3[i*N+j]=20;      
+        }
+        else
+        {
+          H1[i*N+j]=0;
+          H2[i*N+j]=0;
+          H3[i*N+j]=0;
+        }
+      }
+      
+    }          
+  }
+
+  for (int i = 0; i < N; i++)
+  {
+    printf("\n");
+    for (int j = 0; j < N; j++)
+      printf(" %.2f ",H1[i*N+j]);   
+  }
+  printf("\n");
+/////////////////////////////////////////////////////
+//  FIN:   LLenado inicial de la matriz
+///////////////////////////////////////////////////// 
+
+
+
+  free(H1);
+
   //Parte paralalea
   int *A = (int *) malloc(LARGO*sizeof(int));
 
