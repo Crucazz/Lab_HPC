@@ -1,4 +1,4 @@
-salida_out = pipeline
+salida_out = wave
 
 
 salida_headers = funciones.h funciones2.h
@@ -7,15 +7,9 @@ salida_objects = $(salida_source:.c=.o)
 
 
 CC     = gcc
-CFLAGS = -Wall -fopenmp
+CFLAGS = -Wall -fopenmp -lm
 
 depends = .depends
-depends1 = .depends1
-depends2 = .depends2
-depends3 = .depends3
-depends4 = .depends4
-depends5 = .depends5
-depends6 = .depends6
 
 build : $(salida_out) 
 

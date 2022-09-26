@@ -4,6 +4,7 @@
 #include <string.h>
 #include "funciones.h"
 #include "funciones2.h"
+#include <math.h>
 
 
 
@@ -12,109 +13,114 @@
   -Entradas:
       -argc: que consiste en el contador de argumentos ingresados en la linea de comandos. El nombre del programa que se ejecuta se cuenta como un argumento, su formato es entero
       -*argv: arreglo con las entradas ingresadas por linea de comandos, su formato es erreglo de caracteres
-      -*c: punteros a variable c que se utilizara para pasar su valor por referencia, su formato es entero
-      -*u: punteros a variable u que se utilizara para pasar su valor por referencia, su formato es entero
-      -*m: cadena de caracteres utilizada como referencia, su formato es cadena de caracteres
-      -*n: punteros a variable n que se utilizara para pasar su valor por referencia, su formato es entero
-      -*flag: punteros a variable flag que se utilizara para pasar su valor por referencia, su formato es entero
+      -*N: punteros a variable N que se utilizara para pasar su valor por referencia, su formato es entero
+      -*T: punteros a variable T que se utilizara para pasar su valor por referencia, su formato es entero
+      -*f: cadena de caracteres utilizada como referencia, su formato es cadena de caracteres
+      -*H: punteros a variable H que se utilizara para pasar su valor por referencia, su formato es entero
+      -*t: punteros a variable t que se utilizara para pasar su valor por referencia, su formato es entero
   Funcionamiento:
       Funcion que analizara los argumetos recibidos como parametros a la hora de ejecutar
       Estos argumetnos vienen en el dato argv, y siguen el formato getopt que es el siguiente:
-        -c: cantidad de imagenes
-        -u: UMBRAL para binarizar la imagen.
-        -n: UMBRAL para clasificacion
-        -m: NOMBRE del archivo que contiene la mascara a utilizar de la siguiente forma:
-        -b: bandera que indica si se deben mostrar los resultados por pantalla, es decir, la conclusiÃ³n obtenida
-            al leer la imagen binarizada.
-      Estos argumentos son obligatorios con excepcion de -b
+        -N: Tamaño de grilla
+        -T: Numero de pasos.
+        -H: Numero de hebras
+        -f: NOMBRE del archivo de salida:
+        -t: Numero de iteraciones de salida.
+      Estos argumentos son obligatorios
       Tambien se comprobara que cumplan el formato deseado, en caso de que alguno de estos no se cumpla, se saldra de la ejecucion              
 
   -Salida: 
-      argumento recibido de -m, su formato es cadena de caracteres
+      argumento recibido de -f, su formato es cadena de caracteres
 */
 
-char * recibirArgumentos(int argc, char *argv[], int *c, int *u, char * m, int *n, int *flag)
+char * recibirArgumentos(int argc, char *argv[], int *N, int *T, char * f, int *H, int *t)
 {
-  int flags, opt;
+  int  opt;
   char *aux3;
   aux3 = malloc(10*sizeof(char));
-  if(argc <9){//si se ingresa un numero de argumentos menor a 9, se finaliza la ejecucion del programa
-    //Debe ser 8, porque el nombre del programa se considera como un argumento, siendo -c,-u,-m,-n 
+  if(argc <11){//si se ingresa un numero de argumentos menor a 9, se finaliza la ejecucion del programa
+    //Debe ser 10, porque el nombre del programa se considera como un argumento, siendo -N,-T,-H,-f,-t 
     //y sus respectivos valores que acompaÃ±en. No se considera -b (que seria el decimo argumento) porque es un flag que puede ser especificado por el usuario o no
     printf("Se ingreso un numero incorrecto de argumentos\n");
-    fprintf(stderr, "Uso correcto: %s [-c numero entero] [-u numero entero] [-n numero entero] [-m cadena caracteres] [-b]\n",argv[0]);
+    fprintf(stderr, "Uso correcto: %s [-N numero entero] [-T numero entero] [-H numero entero] [-f cadena caracteres] [-t numero entero]\n",argv[0]);
        exit(EXIT_FAILURE);
     }
-  int N1 = -1,N2 = -1,N4 = -1;
+  int N1 = -1,N2 = -1,N4 = -1, Nt= -1;
 
-  flags = 0;
   //Se inicia un ciclo while hasta que se verifiquen todos los argumentos ingresados como entradas, los cuales se reciben con getopt()
   //int getopt (int argc, char *const *argv, const char *options): Siempre se le debe entregar argc y argv. El tercer argumento consiste en el formato de las entradas, ya sea
   //el caracter correspondiente a la opcion/entrada que se quiere recibir y ademÃ¡s se debe indicar si dicha entrada estarÃ¡ acompaÃ±ada de algÃºn valor
   //Esto se indica con ":". Por lo tanto, "c:" quiere decir que se espera recibir la opcion -c y esta si o si debe estar acompaÃ±ada de un valor
   //En cambio, la opcion "-b" no necesita estar acompaÃ±ada de un valor
-  while((opt = getopt(argc, argv, "c:u:m:n:b")) != -1) { 
+  while((opt = getopt(argc, argv, "N:T:f:H:t:")) != -1) { 
      //opt recibe el argumento leido (se hace de forma secuencial) y se ingresa a un switch
      //En caso de que opt sea -1, se dejaran de buscar entradas y por lo tanto se podrÃ¡ salir del while
      switch(opt) {
-     case 'b'://se busca la entrada -b, en caso de ser encontrado se setea el valor flags = 1, no se considera lo que se ingrese despues del flag -b
-       flags = 1;
+     case 't'://se busca la entrada -t
+       Nt = strtol(optarg, &aux3, 10);//se parsea el argumento ingresado junto al flag -t a entero
+       if(optarg!=0 && Nt==0){//si no se ingresa un argumento junto a -t o si no se logra parsear el argumento ingresado, se considera como invalido
+        fprintf(stderr, "Uso correcto: %s [-N numero entero] [-T numero entero] [-H numero entero] [-f cadena caracteres] [-t numero entero]\n",argv[0]);
+        exit(EXIT_FAILURE);
+         }
        break;
 
-     case 'c': //se busca la entrada -c
-    	N1 = strtol(optarg, &aux3, 10);//se parsea el argumento ingresado junto al flag -c a entero
-       if(optarg!=0 && N1==0){//si no se ingresa un argumento junto a -c o si no se logra parsear el argumento ingresado, se considera como invalido
-        fprintf(stderr, "Uso correcto: %s [-c numero entero] [-u numero entero] [-n numero entero] [-m cadena caracteres] [-b]\n",argv[0]);
+     case 'N': //se busca la entrada -N
+    	N1 = strtol(optarg, &aux3, 10);//se parsea el argumento ingresado junto al flag -N a entero
+       if(optarg!=0 && N1==0){//si no se ingresa un argumento junto a -N o si no se logra parsear el argumento ingresado, se considera como invalido
+        fprintf(stderr, "Uso correcto: %s [-N numero entero] [-T numero entero] [-H numero entero] [-f cadena caracteres] [-t numero entero]\n",argv[0]);
         exit(EXIT_FAILURE);
          }
        break;
-      case 'u': //se busca la entrada -u
-       N2 = strtol(optarg, &aux3, 10);//se parsea el argumento ingresado junto al flag -u a entero
-       if(optarg!=0 && N2==0){//si no se ingresa un argumento junto a -u o si no se logra parsear el argumento ingresado, se considera como invalido
-        fprintf(stderr, "Uso correcto: %s [-c numero entero] [-u numero entero] [-n numero entero] [-m cadena caracteres] [-b]\n",argv[0]);
+      case 'T': //se busca la entrada -u
+       N2 = strtol(optarg, &aux3, 10);//se parsea el argumento ingresado junto al flag -T a entero
+       if(optarg!=0 && N2==0){//si no se ingresa un argumento junto a -T o si no se logra parsear el argumento ingresado, se considera como invalido
+        fprintf(stderr, "Uso correcto: %s [-N numero entero] [-T numero entero] [-H numero entero] [-f cadena caracteres] [-t numero entero]\n",argv[0]);
         exit(EXIT_FAILURE);
          }
        break;
-      case 'm': //se busca la entrada -m
-      m=optarg ;
-       if(optarg!=0 && strcmp(optarg,"-b") == 0){//si no se ingresa un argumento junto a -m o si no se logra parsear el argumento ingresado, se considera como invalido
-        fprintf(stderr, "Uso correcto: %s [-c numero entero] [-u numero entero] [-n numero entero] [-m cadena caracteres] [-b]\n",argv[0]);
+      case 'f': //se busca la entrada -f
+        f=optarg ;
+       if(optarg!=0 && strcmp(optarg,"-f") == 0){//si no se ingresa un argumento junto a -f o si no se logra parsear el argumento ingresado, se considera como invalido
+        fprintf(stderr, "Uso correcto: %s [-N numero entero] [-T numero entero] [-H numero entero] [-f cadena caracteres] [-t numero entero]\n",argv[0]);
         exit(EXIT_FAILURE);
          }
        break;
-       case 'n': //se busca la entrada -n
-       N4 = strtol(optarg, &aux3, 10);//se parsea el argumento ingresado junto al flag -n a entero
-       if(optarg!=0 && N4==0){//si no se ingresa un argumento junto a -n o si no se logra parsear el argumento ingresado, se considera como invalido
-        fprintf(stderr, "Uso correcto: %s [-c numero entero] [-u numero entero] [-n numero entero] [-m cadena caracteres] [-b]\n",argv[0]);
+       case 'H': //se busca la entrada -H
+       N4 = strtol(optarg, &aux3, 10);//se parsea el argumento ingresado junto al flag -H a entero
+       if(optarg!=0 && N4==0){//si no se ingresa un argumento junto a -H o si no se logra parsear el argumento ingresado, se considera como invalido
+        fprintf(stderr, "Uso correcto: %s [-N numero entero] [-T numero entero] [-H numero entero] [-f cadena caracteres] [-t numero entero]\n",argv[0]);
         exit(EXIT_FAILURE);
          }
        break;
      default: /* '?' */
-       fprintf(stderr, "Uso correcto: %s [-c numero entero] [-u numero entero] [-n numero entero] [-m cadena caracteres] [-b]\n",argv[0]);
+       fprintf(stderr, "Uso correcto: %s [-N numero entero] [-T numero entero] [-H numero entero] [-f cadena caracteres] [-t numero entero]\n",argv[0]);
        exit(EXIT_FAILURE);
      }
   }
 
-  if(flags==1){//si se encontro un flag -m, se setea la variable global flag = 1, respecto al scope del proceso principal
-    (*flag) = 1;
-    }
-  (*c) = N1; //se iguala la variable c a N, para poder acceder al valor en el main
-  (*u) = N2; //se iguala la variable u a N, para poder acceder al valor en el main
-  (*n) = N4; //se iguala la variable n a N, para poder acceder al valor en el main
+  (*t) = Nt;
+  (*N) = N1;
+  (*T) = N2;
+  (*H) = N4;
 
   if(N1<=0)
   {
-    printf("El valor que acompaÃ±a a -c debe ser mayor a 0\n");
+    printf("El valor que acompaña a -N debe ser mayor a 0\n");
     exit(EXIT_FAILURE);
   }
-
-  if(N4<0 || N4>100)
+  if(N2<=0)
   {
-    printf("El valor que acompaÃ±a a -n debe estar entre 0(cero) y 100\n");
+    printf("El valor que acompaña a -T debe ser mayor a 0\n");
+    exit(EXIT_FAILURE);
+  }
+  if(N4<=0)
+  {
+    printf("El valor que acompaña a -t debe ser mayor a 0\n");
     exit(EXIT_FAILURE);
   }
 
-  return m;
+
+  return f;
 }
 
 

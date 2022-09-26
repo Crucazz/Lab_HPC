@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <math.h>
 #include <omp.h>
 #include "funciones.h"
 #include "funciones2.h"
@@ -22,7 +23,7 @@
 #define WRITE 1
 #define STDOUT 1
 
-#define N 1024
+#define LARGO 1024
 
 //Main
 
@@ -34,29 +35,30 @@ int main(int argc, char *argv[])
 //	INICIO:		Lectura de argumentos
 /////////////////////////////////////////////////////
 
-  int c=0,u=0,n=0,flag=0;
-  char * m = NULL;
-  m=recibirArgumentos(argc, argv, &c, &u, m, &n, &flag);
+  int N=0,T=0,H=0,t=0;
+  char * f = NULL;
+  f=recibirArgumentos(argc, argv, &N, &T, f, &H, &t);
 
 /////////////////////////////////////////////////////
 //	FIN:		Lectura de argumentos
 /////////////////////////////////////////////////////	
 
-  printf("Los argumentos son -c %d -u %d -n %d y flag %d\n",c,u,n,flag);
-  printf("La cadena es %s\n",m );
+  printf("Los argumentos son -N %d -T %d -H %d y t %d\n",N,T,H,t);
+  printf("La cadena es %s\n",f );
+  printf("Hola %f", pow(2,4));
   holaMundo(2);
   holaMundoFunc1(3);
 
   //Parte paralalea
-  int *A = (int *) malloc(N*sizeof(int));
+  int *A = (int *) malloc(LARGO*sizeof(int));
 
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < LARGO; i++)
   {
     A[i] = (rand() % (6666 - 0 +1))+0;
   }
 
   int max = -1;
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < LARGO; i++)
   {
     if(A[i]>max){
       max = A[i];
