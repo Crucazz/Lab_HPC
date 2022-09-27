@@ -26,4 +26,5 @@ Para ejecutar:
 
 como ejemplo se puede ejecutar:
 
-./wave -N 12 -T 32 -H 51 -f texto.txt -t 12
+
+./wave -N 30 -T 32 -H 2 -f texto.txt -t 12
