@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
       
     }          
   }
-
+/*
   for (int i = 0; i < N; i++)
   {
     printf("\n");
@@ -85,6 +85,7 @@ int main(int argc, char *argv[])
       printf(" %.2f ",H1[i*N+j]);   
   }
   printf("\n");
+  */
 /////////////////////////////////////////////////////
 //  FIN:   LLenado inicial de la matriz
 ///////////////////////////////////////////////////// 
@@ -105,13 +106,10 @@ float iMenos1,iMas1,jMenos1,jMas1;
 int contador = 1;
 int id_imagen = 1;
 
-while( contador < T)
+while( contador <= T)
 {
-  iMenos1=0;
-  iMas1=0;
-  jMenos1=0;
-  jMas1=0;
 
+  //Copia lo que esta en H1 en HAUX
   swap(H1,HAUX,N);
   //caso inicial
   if( contador ==1)
@@ -122,13 +120,17 @@ while( contador < T)
     {
       for (int j = 0; j < N; j++)
       {
+        iMenos1=0;
+        iMas1=0;
+        jMenos1=0;
+        jMas1=0;
         if(i-1>=0)
           iMenos1=HAUX[(i-1)*N+j];
         if(j-1>=0)
           jMenos1=HAUX[i*N+(j-1)];
-        if(i+1<=N)
+        if(i+1<N)
           iMas1=HAUX[(i+1)*N+j];
-        if(j+1<=N)
+        if(j+1<N)
           jMas1=HAUX[i*N+(j+1)];
 
         H1[i*N+j]= HAUX[i*N+j]+ (pow(c,2)/2)*pow(dt/dd,2)*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
@@ -145,6 +147,10 @@ while( contador < T)
     {
       for (int j = 0; j < N; j++)
       {
+        iMenos1=0;
+        iMas1=0;
+        jMenos1=0;
+        jMas1=0;
         if(i-1>=0)
           iMenos1=HAUX[(i-1)*N+j];
         if(j-1>=0)
@@ -159,20 +165,20 @@ while( contador < T)
     }
 
   }
+  //Copia lo que esta en HAUX en H2
   swap(HAUX,H2,N);
   //Se genera un documento (SECCION CRITICA)
   if(contador%t==0)
   {
-
-
-    for (int i = 0; i < N; i++)
+    printf(" Se imprime la numero %d \n",contador);
+    /*for (int i = 0; i < N; i++)
       {
         printf("\n");
         for (int j = 0; j < N; j++)
           printf(" %.2f ",H1[i*N+j]);   
       }
       printf("\n\n\n\n");
-
+    */
     //printf("\nSE GENERA NUEVA IMAGEN");
     id_imagen++;
   }
@@ -259,7 +265,7 @@ while( contador < T)
   printf("\n");
 
   */
-  printf("El tamaño de N es: %d",N);
+  printf("\nEl tamaño de N es: %d",N);
   FILE *f1 = fopen("ejemplo.raw", "w");
   fwrite(H1, sizeof(float), N*N, f1);
   fclose(f1);
@@ -271,7 +277,9 @@ while( contador < T)
   free(HImpresion);
 
 
-  printf("El maximo con omp es: %d\n",gmax);
+  printf("\nEl maximo con omp es: %d\n",gmax);
+
+  printf("\nValores de T=%d, t=%d\n",T,t);
 
   return 0;
 }
