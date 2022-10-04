@@ -101,7 +101,7 @@ HAUX = t-1
 ///////////////////////////////////////////////////// 
 
 
-float c=1.0 , dt=0.1 , dd=0.2;
+float c=1.0 , dt=0.1 , dd=2.0;
 float iMenos1,iMas1,jMenos1,jMas1;
 int contador = 1;
 int id_imagen = 1;
@@ -116,24 +116,17 @@ while( contador <= T)
   {
     //printf("Se calcula el caso base: %d \n",contador);
 
-    for (int i = 0; i < N; i++)
+    for (int i = 1; i < N-1; i++)
     {
-      for (int j = 0; j < N; j++)
+      for (int j = 1; j < N-1; j++)
       {
-        iMenos1=0;
-        iMas1=0;
-        jMenos1=0;
-        jMas1=0;
-        if(i-1>=0)
-          iMenos1=HAUX[(i-1)*N+j];
-        if(j-1>=0)
-          jMenos1=HAUX[i*N+(j-1)];
-        if(i+1<N)
-          iMas1=HAUX[(i+1)*N+j];
-        if(j+1<N)
-          jMas1=HAUX[i*N+(j+1)];
+        //printf("Pos[%d, %d] \n",i,j);
+        iMenos1=HAUX[(i-1)*N+j];
+        jMenos1=HAUX[i*N+(j-1)];
+        iMas1=HAUX[(i+1)*N+j];
+        jMas1=HAUX[i*N+(j+1)];
 
-        H1[i*N+j]= HAUX[i*N+j]+ (pow(c,2)/2)*pow(dt/dd,2)*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
+        H1[i*N+j]= HAUX[i*N+j]+ (c*c)*((dt/dd)*(dt/dd))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
       }
       
     }  
@@ -143,23 +136,16 @@ while( contador <= T)
 
     //printf("Se calcula el caso normal: %d \n",contador);
 
-    for (int i = 0; i < N; i++)
+    for (int i = 1; i < N-1; i++)
     {
-      for (int j = 0; j < N; j++)
+      for (int j = 1; j < N-1; j++)
       {
-        iMenos1=0;
-        iMas1=0;
-        jMenos1=0;
-        jMas1=0;
-        if(i-1>=0)
-          iMenos1=HAUX[(i-1)*N+j];
-        if(j-1>=0)
-          jMenos1=HAUX[i*N+(j-1)];
-        if(i+1<=N)
-          iMas1=HAUX[(i+1)*N+j];
-        if(j+1<=N)
-          jMas1=HAUX[i*N+(j+1)];
-        H1[i*N+j]= 2*HAUX[i*N+j]-H2[i*N+j] +(pow(c,2))*(pow(dt/dd,2))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
+        iMenos1=HAUX[(i-1)*N+j];
+        jMenos1=HAUX[i*N+(j-1)];
+        iMas1=HAUX[(i+1)*N+j];
+        jMas1=HAUX[i*N+(j+1)];
+
+        H1[i*N+j]= 2*HAUX[i*N+j]-H2[i*N+j] +(c*c)*((dt/dd)*(dt/dd))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
       }
       
     }
