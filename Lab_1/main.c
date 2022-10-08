@@ -92,9 +92,7 @@ float iMenos1,iMas1,jMenos1,jMas1;
 int contador = 1;
 int id_imagen = 1;
 
-#pragma omp parallel private(iMenos1,iMas1,jMenos1,jMas1) shared(contador, id_imagen,c,dt,dd,H1,H2,HAUX,N,T,f,t) num_threads(H)
-{
-  printf("Hilos %d", omp_get_num_threads());
+  //printf("Hilos %d", omp_get_num_threads());
   while( contador <= T)
   {
     //Copia lo que esta en H1 en HAUX
@@ -102,6 +100,9 @@ int id_imagen = 1;
     //caso inicial
     if( contador ==1)
     {
+    #pragma omp parallel shared(jMas1,jMenos1,iMenos1,iMas1) num_threads(H)
+     {
+      #pragma omp for schedule(static, H) collapse(2)
       for (int i = 1; i < N-1; i++)
       {
         for (int j = 1; j < N-1; j++)
@@ -114,7 +115,6 @@ int id_imagen = 1;
 
           H1[i*N+j]= HAUX[i*N+j]+ (c*c)*((dt/dd)*(dt/dd))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
         }
-        
       }  
     }
     else //caso normal
@@ -133,20 +133,22 @@ int id_imagen = 1;
         
       }
 
-    }
-    //Copia lo que esta en HAUX en H2
-    swap(HAUX,H2,N);
-    //Se genera un documento (SECCION CRITICA)
+    } 
     #pragma omp critical
+    {
+      //Copia lo que esta en HAUX en H2
+      swap(HAUX,H2,N);
       if(contador%t==0)
       {
+      //Se genera un documento (SECCION CRITICA)
         printf(" Se imprime la número %d \n",contador);
         id_imagen++;
       }
       contador++;
+    }
+  }
       
   }
-}
 /////////////////////////////////////////////////////
 //  FIN:   Calculo de ecuacion
 ///////////////////////////////////////////////////// 
@@ -158,7 +160,6 @@ int id_imagen = 1;
   FILE *f1 = fopen("ejemplo.raw", "w");
   fwrite(H1, sizeof(float), N*N, f1);
   fclose(f1);
-
 
   free(H1);
   free(H2);
