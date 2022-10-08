@@ -1,22 +1,15 @@
-//para instalar la libreria en linux:
-//sudo apt-get install libjpeg8-dev 
-//
+
 //para compilar:
 //make
 //para ejecutar
-//./pipeline [-c numero entero] [-u numero entero] [-n numero entero] [-m cadena caracteres] [-b]
+//./wave [-N numero entero] [-T numero entero] [-H numero entero] [-f cadena caracteres] [-t numero entero]
 
-
-#include <unistd.h> //Para utilizar fork(), pipes(), entre otros
 #include <stdio.h>
-#include <jpeglib.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <math.h>
 #include <omp.h>
 #include "funciones.h"
 #include "funciones2.h"
+#include <time.h>
 
 
 #define READ 0
@@ -30,7 +23,8 @@
 int main(int argc, char *argv[])
 {
   
-  
+  clock_t start2, end2;
+  double cpu_time_used;
 /////////////////////////////////////////////////////
 //	INICIO:		Lectura de argumentos
 /////////////////////////////////////////////////////
@@ -77,6 +71,17 @@ int main(int argc, char *argv[])
     }        
   }
 
+/*
+for (int i = 0; i < N; i++)
+    {
+      for (int j = 0; j < N; j++)
+      {
+        printf(" %2.f ",HAUX[i*N+j]);
+      }
+      printf("\n");
+    }  
+*/
+
 /////////////////////////////////////////////////////
 //  FIN:   LLenado inicial de la matriz
 ///////////////////////////////////////////////////// 
@@ -90,21 +95,28 @@ int main(int argc, char *argv[])
 float c=1.0 , dt=0.1 , dd=2.0;
 float iMenos1,iMas1,jMenos1,jMas1;
 int contador = 1;
-int id_imagen = 1;
 
+double start; 
+double end; 
+start2 = clock();
+start = omp_get_wtime();
+
+#pragma omp parallel shared(H1,HAUX,H2,contador,T) private(jMas1,jMenos1,iMenos1,iMas1) num_threads(H)
+{
+  
   //printf("Hilos %d", omp_get_num_threads());
-#pragma omp parallel num_threads(H)
-  for(int l=1; i<=T; l++)
+  while( contador <= T)
   {
     //Copia lo que esta en H1 en HAUX
-     #pragma omp critical
+    #pragma omp single
     {
       swap(H1,HAUX,N);
     }
     //caso inicial
     if( contador ==1)
     {
-
+    
+      #pragma omp for schedule(static, H) collapse(2)
       for (int i = 1; i < N-1; i++)
       {
         for (int j = 1; j < N-1; j++)
@@ -118,8 +130,10 @@ int id_imagen = 1;
           H1[i*N+j]= HAUX[i*N+j]+ (c*c)*((dt/dd)*(dt/dd))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
         }
       }  
+    }
     else //caso normal
     {
+      #pragma omp for schedule(static, H) collapse(2)
       for (int i = 1; i < N-1; i++)
       {
         for (int j = 1; j < N-1; j++)
@@ -135,21 +149,21 @@ int id_imagen = 1;
       }
 
     } 
-    #pragma omp critical
+    #pragma omp single
     {
-      //Copia lo que esta en HAUX en H2
       swap(HAUX,H2,N);
-      if(contador%t==0)
-      {
-      //Se genera un documento (SECCION CRITICA)
-        printf(" Se imprime la número %d \n",contador);
-        id_imagen++;
-      }
       contador++;
     }
-  }
-      
-  }
+    
+    
+  }      
+}
+
+end = omp_get_wtime();
+end2 = clock();
+cpu_time_used = ((double) (end2 - start2))/1000000;
+printf("Work took %f seconds\n", end - start);
+printf("Tiempo %f \n",cpu_time_used);
 /////////////////////////////////////////////////////
 //  FIN:   Calculo de ecuacion
 ///////////////////////////////////////////////////// 
