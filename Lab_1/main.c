@@ -93,16 +93,18 @@ int contador = 1;
 int id_imagen = 1;
 
   //printf("Hilos %d", omp_get_num_threads());
-  while( contador <= T)
+#pragma omp parallel num_threads(H)
+  for(int l=1; i<=T; l++)
   {
     //Copia lo que esta en H1 en HAUX
-    swap(H1,HAUX,N);
+     #pragma omp critical
+    {
+      swap(H1,HAUX,N);
+    }
     //caso inicial
     if( contador ==1)
     {
-    #pragma omp parallel shared(jMas1,jMenos1,iMenos1,iMas1) num_threads(H)
-     {
-      #pragma omp for schedule(static, H) collapse(2)
+
       for (int i = 1; i < N-1; i++)
       {
         for (int j = 1; j < N-1; j++)
@@ -116,7 +118,6 @@ int id_imagen = 1;
           H1[i*N+j]= HAUX[i*N+j]+ (c*c)*((dt/dd)*(dt/dd))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
         }
       }  
-    }
     else //caso normal
     {
       for (int i = 1; i < N-1; i++)
