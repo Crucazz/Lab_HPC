@@ -8,23 +8,11 @@
 #include <stdlib.h>
 #include <omp.h>
 #include "funciones.h"
-#include "funciones2.h"
-#include <time.h>
-
-
-#define READ 0
-#define WRITE 1
-#define STDOUT 1
-
-#define LARGO 1024
 
 //Main
 
 int main(int argc, char *argv[])
 {
-  
-  clock_t start2, end2;
-  double cpu_time_used;
 /////////////////////////////////////////////////////
 //	INICIO:		Lectura de argumentos
 /////////////////////////////////////////////////////
@@ -42,7 +30,6 @@ int main(int argc, char *argv[])
 /////////////////////////////////////////////////////
 //  INICIO:   LLenado inicial de la matriz
 /////////////////////////////////////////////////////
-  float *HImpresion = malloc(N*N*sizeof(float));
   
   float *H1 = malloc(N*N*sizeof(float));
   float *H2 = malloc(N*N*sizeof(float));
@@ -71,17 +58,6 @@ int main(int argc, char *argv[])
     }        
   }
 
-/*
-for (int i = 0; i < N; i++)
-    {
-      for (int j = 0; j < N; j++)
-      {
-        printf(" %2.f ",HAUX[i*N+j]);
-      }
-      printf("\n");
-    }  
-*/
-
 /////////////////////////////////////////////////////
 //  FIN:   LLenado inicial de la matriz
 ///////////////////////////////////////////////////// 
@@ -96,15 +72,11 @@ float c=1.0 , dt=0.1 , dd=2.0;
 float iMenos1,iMas1,jMenos1,jMas1;
 int contador = 1;
 
-double start; 
-double end; 
-start2 = clock();
+double start, end;
 start = omp_get_wtime();
-
 #pragma omp parallel shared(H1,HAUX,H2,contador,T) private(jMas1,jMenos1,iMenos1,iMas1) num_threads(H)
 {
-  
-  //printf("Hilos %d", omp_get_num_threads());
+
   while( contador <= T)
   {
     //Copia lo que esta en H1 en HAUX
@@ -116,28 +88,29 @@ start = omp_get_wtime();
     if( contador ==1)
     {
     
-      #pragma omp for schedule(static, H) collapse(2)
+      #pragma omp for schedule(static) collapse(2) 
       for (int i = 1; i < N-1; i++)
-      {
+      {        
         for (int j = 1; j < N-1; j++)
         {
-          //printf("Pos[%d, %d] \n",i,j);
           iMenos1=HAUX[(i-1)*N+j];
           jMenos1=HAUX[i*N+(j-1)];
           iMas1=HAUX[(i+1)*N+j];
           jMas1=HAUX[i*N+(j+1)];
 
           H1[i*N+j]= HAUX[i*N+j]+ (c*c)*((dt/dd)*(dt/dd))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
-        }
+
+        } 
+
       }  
     }
     else //caso normal
     {
-      #pragma omp for schedule(static, H) collapse(2)
+      #pragma omp for schedule(static) collapse(2) 
       for (int i = 1; i < N-1; i++)
-      {
+      {        
         for (int j = 1; j < N-1; j++)
-        {
+        {        
           iMenos1=HAUX[(i-1)*N+j];
           jMenos1=HAUX[i*N+(j-1)];
           iMas1=HAUX[(i+1)*N+j];
@@ -152,6 +125,8 @@ start = omp_get_wtime();
     #pragma omp single
     {
       swap(HAUX,H2,N);
+      if (contador%t==0)
+        printf("Se genera la imagen %d en la iteracion %d\n",contador/t,contador);
       contador++;
     }
     
@@ -160,29 +135,20 @@ start = omp_get_wtime();
 }
 
 end = omp_get_wtime();
-end2 = clock();
-cpu_time_used = ((double) (end2 - start2))/1000000;
-printf("Work took %f seconds\n", end - start);
-printf("Tiempo %f \n",cpu_time_used);
+printf("Tiempo en paralelo %f  seconds\n", end - start);
 /////////////////////////////////////////////////////
 //  FIN:   Calculo de ecuacion
 ///////////////////////////////////////////////////// 
 
   
 
-
-  printf("\nEl tamaño de N es: %d",N);
-  FILE *f1 = fopen("ejemplo.raw", "w");
+  FILE *f1 = fopen(f, "w");
   fwrite(H1, sizeof(float), N*N, f1);
   fclose(f1);
 
   free(H1);
   free(H2);
   free(HAUX);
-  free(HImpresion);
-
-
-  printf("\nValores de T=%d, t=%d\n",T,t);
 
   return 0;
 }
