@@ -1,2 +1,2 @@
 funciones.o: funciones.c funciones.h
-main.o: main.c funciones.h
+wave.o: wave.c funciones.h

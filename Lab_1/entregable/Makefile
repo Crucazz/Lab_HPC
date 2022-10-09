@@ -2,7 +2,7 @@ salida_out = wave
 
 
 salida_headers = funciones.h
-salida_source  = $(salida_headers:.h=.c) main.c
+salida_source  = $(salida_headers:.h=.c) wave.c
 salida_objects = $(salida_source:.c=.o)
 
 
