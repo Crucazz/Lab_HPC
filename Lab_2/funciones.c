@@ -16,15 +16,15 @@
       -*N: punteros a variable N que se utilizara para pasar su valor por referencia, su formato es entero
       -*T: punteros a variable T que se utilizara para pasar su valor por referencia, su formato es entero
       -*f: cadena de caracteres utilizada como referencia, su formato es cadena de caracteres
-      -*x: punteros a variable H que se utilizara para pasar su valor por referencia, su formato es entero
-      -*y: punteros a variable t que se utilizara para pasar su valor por referencia, su formato es entero
+      -*x: punteros a variable x que se utilizara para pasar su valor por referencia, su formato es entero
+      -*y: punteros a variable y que se utilizara para pasar su valor por referencia, su formato es entero
   Funcionamiento:
       Funcion que analizara los argumetos recibidos como parametros a la hora de ejecutar
       Estos argumetnos vienen en el dato argv, y siguen el formato getopt que es el siguiente:
         -N: Tamaño de grilla
         -T: Numero de pasos.
-        -x: Numero de hebras        
-        -y: Numero de iteraciones de salida.
+        -x: Tamaño del bloque en X        
+        -y: Tamaño del bloque en Y.
         -f: NOMBRE del archivo de salida:
       Estos argumentos son obligatorios
       Tambien se comprobara que cumplan el formato deseado, en caso de que alguno de estos no se cumpla, se saldra de la ejecucion              
@@ -50,8 +50,7 @@ char * recibirArgumentos(int argc, char *argv[], int *N, int *T, char * f, int *
   //Se inicia un ciclo while hasta que se verifiquen todos los argumentos ingresados como entradas, los cuales se reciben con getopt()
   //int getopt (int argc, char *const *argv, const char *options): Siempre se le debe entregar argc y argv. El tercer argumento consiste en el formato de las entradas, ya sea
   //el caracter correspondiente a la opcion/entrada que se quiere recibir y ademÃ¡s se debe indicar si dicha entrada estarÃ¡ acompaÃ±ada de algÃºn valor
-  //Esto se indica con ":". Por lo tanto, "c:" quiere decir que se espera recibir la opcion -c y esta si o si debe estar acompaÃ±ada de un valor
-  //En cambio, la opcion "-b" no necesita estar acompaÃ±ada de un valor
+  //Esto se indica con ":". Por lo tanto, "N:" quiere decir que se espera recibir la opcion -N y esta si o si debe estar acompaÃ±ada de un valor
   while((opt = getopt(argc, argv, "N:T:x:y:f:")) != -1) { 
      //opt recibe el argumento leido (se hace de forma secuencial) y se ingresa a un switch
      //En caso de que opt sea -1, se dejaran de buscar entradas y por lo tanto se podrÃ¡ salir del while

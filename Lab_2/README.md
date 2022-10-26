@@ -14,17 +14,18 @@ para compilar:
 
 Para ejecutar:		
 
-	$ ./wave [-N numero entero] [-T numero entero] [-H numero entero] [-f cadena caracteres] [-t numero entero]
+	$ ./wave [-N numero entero] [-x numero entero] [-y numero entero] [-T numero entero] [-f cadena caracteres]
 
 	donde:
-		-N: Tamaño de grilla
+		-N: Tamaño de grilla        
+        -x: Tamaño del bloque en X
+        -y: Tamaño del bloque en Y
         -T: Numero de pasos.
-        -H: Numero de hebras
         -f: NOMBRE del archivo de salida:
-        -t: Numero de iteraciones de salida
+        
 
 
 como ejemplo se puede ejecutar:
 
 
-./wave -N 30 -T 32 -H 2 -f texto.txt -t 12
+./wave -N 30 -x 5 -y 5 -T 1 -f imagen.raw
