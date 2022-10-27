@@ -3,8 +3,6 @@
 #include <unistd.h>
 #include <string.h>
 #include "funciones.h"
-#include "funciones2.h"
-#include <math.h>
 
 
 

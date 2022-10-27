@@ -11,60 +11,37 @@ extern "C" {
 #include "funciones.h"
 }
 
-__global__ void wave(float *H1, float *H2, float*HAUX, int contador)
+__global__ void wave(float *H1, float *H2, float*HAUX, int contador, int N)
 {
+  float c=1.0 , dt=0.1 , dd=2.0;
+  float iMenos1,iMas1,jMenos1,jMas1;
+  int j, i;
+  i = blockDim.x*blockIdx.x + threadIdx.x;  // global index x (horizontal)
+  j = blockDim.y*blockIdx.y + threadIdx.y;  // global index y (vertical)
+  
+  //caso inicial
+  if( contador ==1)
+  {
+    iMenos1=HAUX[(i-1)*N+j];
+    jMenos1=HAUX[i*N+(j-1)];
+    iMas1=HAUX[(i+1)*N+j];
+    jMas1=HAUX[i*N+(j+1)];
 
-  int blocksize = blockDim.y * blockDim.x; // number of threads in a TB
-  int blockId = gridDim.x * blockIdx.y + blockIdx.x; // unique block Id
-  int tid = blockId * blocksize + // number of threads before this block
-  blockDim.x*threadIdx.y + threadIdx.x; // global tid
-  printf("I am thread (%d, %d) in block (%d, %d). Global thread ID = %d\n",
-  threadIdx.y, threadIdx.x, blockIdx.y, blockIdx.x, tid);
-    /*obtencion del id global
-    int i, j;
-    i = blockDim.x*blockIdx.x + threadIdx.x;  // global index x (horizontal)
-    j = blockDim.y*blockIdx.y + threadIdx.y;  // global index y (vertical)
+    H1[i*N+j]= HAUX[i*N+j]+ (c*c)*((dt/dd)*(dt/dd))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]); 
+  }
+  else //caso normal
+  {     
+    iMenos1=HAUX[(i-1)*N+j];
+    jMenos1=HAUX[i*N+(j-1)];
+    iMas1=HAUX[(i+1)*N+j];
+    jMas1=HAUX[i*N+(j+1)];
 
-    printf("El i: %d   el j: %d  el blockX: %d el blockY: %d \n",i,j,blockDim.x,blockDim.y);
+    H1[i*N+j]= 2*HAUX[i*N+j]-H2[i*N+j] +(c*c)*((dt/dd)*(dt/dd))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
 
+  }
+
+  return H1;
     
-    //caso inicial
-    if( contador ==1)
-    {
-    
-      for (int i = 1; i < N-1; i++)
-      {        
-        for (int j = 1; j < N-1; j++)
-        {
-          iMenos1=HAUX[(i-1)*N+j];
-          jMenos1=HAUX[i*N+(j-1)];
-          iMas1=HAUX[(i+1)*N+j];
-          jMas1=HAUX[i*N+(j+1)];
-
-          H1[i*N+j]= HAUX[i*N+j]+ (c*c)*((dt/dd)*(dt/dd))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
-
-        } 
-
-      }  
-    }
-    else //caso normal
-    {
-      for (int i = 1; i < N-1; i++)
-      {        
-        for (int j = 1; j < N-1; j++)
-        {        
-          iMenos1=HAUX[(i-1)*N+j];
-          jMenos1=HAUX[i*N+(j-1)];
-          iMas1=HAUX[(i+1)*N+j];
-          jMas1=HAUX[i*N+(j+1)];
-
-          H1[i*N+j]= 2*HAUX[i*N+j]-H2[i*N+j] +(c*c)*((dt/dd)*(dt/dd))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
-        }
-        
-      }
-
-    }
-    */
 }
 
 
@@ -147,10 +124,6 @@ __host__ int main(int argc, char *argv[])
 //  INICIO:   Calculo de ecuacion
 ///////////////////////////////////////////////////// 
 
-/*
-  float c=1.0 , dt=0.1 , dd=2.0;
-  float iMenos1,iMas1,jMenos1,jMas1;
-  */
   int contador = 1;
 
   dim3 blocksize;
@@ -158,8 +131,8 @@ __host__ int main(int argc, char *argv[])
 
   //Numero de threads en cada bloque
 
-  gridsize.x = N;
-  gridsize.y = N;
+  gridsize.x = N/x;
+  gridsize.y = N/y;
   blocksize.x = x;
   blocksize.y = y;
 
@@ -171,7 +144,11 @@ __host__ int main(int argc, char *argv[])
   while( contador <= T)
   {
     swap(H1,HAUX,N);
-    wave<<<gridsize, blocksize>>>(d_H1, d_H2, d_HAUX, contador);
+    cudaMemcpy(d_H1, H1, N*N*sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_H2, H2, N*N*sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_HAUX, HAUX, N*N*sizeof(float), cudaMemcpyHostToDevice);
+    wave<<<gridsize, blocksize>>>(d_H1, d_H2, d_HAUX, contador, N);    
+    cudaMemcpy(d_H1, H1, N*N*sizeof(double), cudaMemcpyDeviceToHost);
     swap(HAUX,H2,N);    
     contador++;
     
