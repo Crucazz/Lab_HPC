@@ -127,15 +127,6 @@ char * recibirArgumentos(int argc, char *argv[], int *N, int *T, char * f, int *
 
 
 
-void swap(float *origen,float *destino, int N)
-{
-  for (int i = 0; i < N; i++){
-    for (int j = 0; j < N; j++)
-      destino[i*N+j]=origen[i*N+j];   
-  }
-  
-}
-
 void saveImg(float *imagen, float *imagenAmpliada, int N)
 {
   printf("El N es: %d",N);
@@ -146,13 +137,5 @@ void saveImg(float *imagen, float *imagenAmpliada, int N)
         imagen[i*N+j] = imagenAmpliada[(i+1)*N+(j+1)];
     }
   }
-}
-
-
-
-void holaMundoFunc1( int parametro1 )
-{
-  printf("hola mundo del funciones 1 %d \n",parametro1);
-
 }
 

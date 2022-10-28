@@ -8,6 +8,7 @@ extern "C" {
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include "funciones.h"
 }
 
@@ -28,33 +29,22 @@ __global__ void wave(float *H1, float *H2, float*HAUX, int N, int contador)
     iMas1=HAUX[(i+1)*N+j];
     jMas1=HAUX[i*N+(j+1)];
 
-    temp[i*N+j]= HAUX[i*N+j]+ (c*c)*((dt/dd)*(dt/dd))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]); 
+    temp[threadIdx.x*blockDim.x+threadIdx.y]= HAUX[i*N+j]+ (c*c)*((dt/dd)*(dt/dd))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
   }
   else //caso normal
-  {     
+  {
     iMenos1=HAUX[(i-1)*N+j];
     jMenos1=HAUX[i*N+(j-1)];
     iMas1=HAUX[(i+1)*N+j];
     jMas1=HAUX[i*N+(j+1)];
+    temp[threadIdx.x*blockDim.x+threadIdx.y]= 2*HAUX[i*N+j]-H2[i*N+j] +(c*c)*((dt/dd)*(dt/dd))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
+  }
+  __syncthreads();
+  H1[i*N+j] =temp[threadIdx.x*blockDim.x+threadIdx.y];
 
-    temp[i*N+j]= 2*HAUX[i*N+j]-H2[i*N+j] +(c*c)*((dt/dd)*(dt/dd))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
-    printf("Temp = %f \n",temp[i*N+j]);
-  }
-  __syncthreads(); 
-  if (i == 1 && j==1) {    
-    printf("Se procede a actualizar H1\n");
-    for (i = 1; i < N-1; i++)
-      {        
-        for (j = 1; j < N-1; j++){
-          H1[i*N+j] =temp[i*N+j];        
-        }
-      }
-    
-  }
-    
 }
 
-__global__ void swap2(float *origen,float *destino, int N)
+__global__ void swap(float *origen,float *destino, int N)
 {
   int j, i;
   i = blockDim.x*blockIdx.x + threadIdx.x;  // global index x (horizontal)
@@ -91,19 +81,13 @@ __host__ int main(int argc, char *argv[])
   float *H1 = (float *) malloc(N*N*sizeof(float));
   float *H2 = (float *) malloc(N*N*sizeof(float));
   float *HAUX = (float *) malloc(N*N*sizeof(float));
-  
-  int flag = 0;
+
   for (int i = 0; i < N; i++)
   {
     for (int j = 0; j < N; j++)
     {
       if( 0.4*N < i && 0.6*N > i && 0.4*N < j && 0.6*N > j) 
-      {     
-        if(flag==0){
-          printf("(%d,%d)=20\n",i,j);
-          flag=1;
-        }
-        
+      {             
         H1[i*N+j]=20;
         H2[i*N+j]=20;
         HAUX[i*N+j]=20;
@@ -160,29 +144,31 @@ __host__ int main(int argc, char *argv[])
 
   int contador = 1;
 
+  time_t start = time(NULL);
 
   //Se ejecuta el kernel
   while( contador <= T)
   {
-    swap2<<<gridsize, blocksize>>>(d_H1,d_HAUX,N);
+    swap<<<gridsize, blocksize>>>(d_H1,d_HAUX,N);
     cudaDeviceSynchronize();
-    wave<<<gridsize, blocksize, N*N*sizeof(float)>>>(d_H1, d_H2, d_HAUX, N, contador);
+    wave<<<gridsize, blocksize, (x+1)*(y+1)*sizeof(float)>>>(d_H1, d_H2, d_HAUX, N, contador);
     cudaError_t err = cudaGetLastError();
-            if (err != cudaSuccess) 
+            if (err != cudaSuccess)
               printf("Error: %s\n", cudaGetErrorString(err));
-    swap2<<<gridsize, blocksize>>>(d_HAUX,d_H2,N);    
+    swap<<<gridsize, blocksize>>>(d_HAUX,d_H2,N);
     cudaDeviceSynchronize();
     contador++;
-    
-  }      
-  printf("TErmino");
-    
-    
-  
+
+  }
+  time_t finish = time(NULL);
+  printf("Wall-Clock: %.5f\n", (double)(finish - start));
+
+
+
 
 /////////////////////////////////////////////////////
 //  FIN:   Calculo de ecuacion
-///////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////
   cudaMemcpy(H1, d_H1, N*N*sizeof(float), cudaMemcpyDeviceToHost);
   FILE *f1 = fopen(f, "w");
   fwrite(H1, sizeof(float), N*N, f1);
