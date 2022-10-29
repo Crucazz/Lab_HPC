@@ -7,7 +7,7 @@ salida_objects = $(salida_source:.c=.o)
 
 
 CC     = nvcc
-CFLAGS = --compiler-options -Wall
+CFLAGS = --compiler-options -Wall -Xptxas="-v"
 
 depends = .depends
 
@@ -34,5 +34,4 @@ clean :
 .PHONY : build zip clean
 
 sinclude $(depends)
-
 

@@ -22,25 +22,32 @@ __global__ void wave(float *H1, float *H2, float*HAUX, int N, int contador)
   i = blockDim.x*blockIdx.x + threadIdx.x;  // global index x (horizontal)
   j = blockDim.y*blockIdx.y + threadIdx.y;  // global index y (vertical)
     //caso inicial
-  if( contador ==1)
-  {
-    iMenos1=HAUX[(i-1)*N+j];
-    jMenos1=HAUX[i*N+(j-1)];
-    iMas1=HAUX[(i+1)*N+j];
-    jMas1=HAUX[i*N+(j+1)];
+  if (i >1 && i<N-1 && j>1 && j<N-1 )
+  {  
+    if( contador ==1)
+    {
+      iMenos1=HAUX[(i-1)*N+j];
+      jMenos1=HAUX[i*N+(j-1)];
+      iMas1=HAUX[(i+1)*N+j];
+      jMas1=HAUX[i*N+(j+1)];
 
-    temp[threadIdx.x*blockDim.x+threadIdx.y]= HAUX[i*N+j]+ (c*c)*((dt/dd)*(dt/dd))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
+      temp[(threadIdx.x*blockDim.x)+threadIdx.y]= HAUX[i*N+j]+ (c*c)*((dt/dd)*(dt/dd))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
+      
+    }
+    else //caso normal
+    {
+      iMenos1=HAUX[(i-1)*N+j];
+      jMenos1=HAUX[i*N+(j-1)];
+      iMas1=HAUX[(i+1)*N+j];
+      jMas1=HAUX[i*N+(j+1)];
+      temp[(threadIdx.x*blockDim.x)+threadIdx.y]= 2*HAUX[i*N+j]-H2[i*N+j] +(c*c)*((dt/dd)*(dt/dd))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
+     
+    }
+    
+    H1[i*N+j] =temp[(threadIdx.x*blockDim.x)+threadIdx.y];
   }
-  else //caso normal
-  {
-    iMenos1=HAUX[(i-1)*N+j];
-    jMenos1=HAUX[i*N+(j-1)];
-    iMas1=HAUX[(i+1)*N+j];
-    jMas1=HAUX[i*N+(j+1)];
-    temp[threadIdx.x*blockDim.x+threadIdx.y]= 2*HAUX[i*N+j]-H2[i*N+j] +(c*c)*((dt/dd)*(dt/dd))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
-  }
-  __syncthreads();
-  H1[i*N+j] =temp[threadIdx.x*blockDim.x+threadIdx.y];
+    
+  
 
 }
 
@@ -49,7 +56,8 @@ __global__ void swap(float *origen,float *destino, int N)
   int j, i;
   i = blockDim.x*blockIdx.x + threadIdx.x;  // global index x (horizontal)
   j = blockDim.y*blockIdx.y + threadIdx.y;  // global index y (vertical)
-  destino[i*N+j]=origen[i*N+j];
+  if (i >1 && i<N-1 && j>1 && j<N-1 )
+    destino[i*N+j]=origen[i*N+j];
   
 }
 
@@ -137,12 +145,48 @@ __host__ int main(int argc, char *argv[])
 
   //Numero de threads en cada bloque
 
-  gridsize.x = N/x;
-  gridsize.y = N/y;
+  int BiasX = 0, BiasY = 0;
+
+  if (N%x!=0)
+    BiasX = 1;
+  if (N%y!=0)
+    BiasY = 1;
+  gridsize.x = (N/x)+BiasX;
+  gridsize.y = (N/y)+BiasY;
   blocksize.x = x;
   blocksize.y = y;
 
+  //printf("El tamaño de N: %d, gridZise: %d * %d\n",N,gridsize.x,gridsize.y);
   int contador = 1;
+
+  int numBlocks = gridsize.x*gridsize.y;
+  int TamBloque = x*y;
+  int device;
+  cudaDeviceProp prop;
+  int activeWarps;
+  int maxWarps;
+
+  cudaGetDevice(&device);
+  cudaGetDeviceProperties(&prop, device);  
+  cudaOccupancyMaxActiveBlocksPerMultiprocessor( &numBlocks,
+        wave,
+        TamBloque,
+        0);
+
+    activeWarps = numBlocks * TamBloque / prop.warpSize;
+    maxWarps = prop.maxThreadsPerMultiProcessor / prop.warpSize;
+
+    printf ("La ocupancia %lf  active/max*100 \n",(double)activeWarps / maxWarps * 100);
+    printf ("MAx warp: %d   y  activos warp : %d \n",maxWarps,activeWarps);
+
+
+
+
+  cudaEvent_t start2, stop2;
+  float gpu_time = 0.0f;
+  cudaEventCreate(&start2) ;
+  cudaEventCreate(&stop2) ;
+  cudaEventRecord(start2, 0);  
 
   time_t start = time(NULL);
 
@@ -151,7 +195,7 @@ __host__ int main(int argc, char *argv[])
   {
     swap<<<gridsize, blocksize>>>(d_H1,d_HAUX,N);
     cudaDeviceSynchronize();
-    wave<<<gridsize, blocksize, (x+1)*(y+1)*sizeof(float)>>>(d_H1, d_H2, d_HAUX, N, contador);
+    wave<<<gridsize, blocksize, x*y*sizeof(float)>>>(d_H1, d_H2, d_HAUX, N, contador);
     cudaError_t err = cudaGetLastError();
             if (err != cudaSuccess)
               printf("Error: %s\n", cudaGetErrorString(err));
@@ -161,6 +205,12 @@ __host__ int main(int argc, char *argv[])
 
   }
   time_t finish = time(NULL);
+  cudaEventRecord(stop2, 0);
+  cudaEventSynchronize(stop2);
+  cudaEventElapsedTime(&gpu_time, start2, stop2);
+  printf("Time spent: %.5f\n", gpu_time);
+  cudaEventDestroy(start2);
+  cudaEventDestroy(stop2);
   printf("Wall-Clock: %.5f\n", (double)(finish - start));
 
 
