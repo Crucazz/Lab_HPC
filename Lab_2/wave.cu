@@ -9,6 +9,8 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
+#include <sys/time.h>
 #include "funciones.h"
 }
 
@@ -19,8 +21,8 @@ __global__ void wave(float *H1, float *H2, float*HAUX, int N, int contador)
   int j, i;
   extern __shared__ float temp[];
 
-  i = blockDim.x*blockIdx.x + threadIdx.x;  // global index x (horizontal)
-  j = blockDim.y*blockIdx.y + threadIdx.y;  // global index y (vertical)
+  j = blockDim.x*blockIdx.x + threadIdx.x;  // global index x (horizontal)
+  i = blockDim.y*blockIdx.y + threadIdx.y;  // global index y (vertical)
     //caso inicial
   if (i >1 && i<N-1 && j>1 && j<N-1 )
   {  
@@ -31,7 +33,7 @@ __global__ void wave(float *H1, float *H2, float*HAUX, int N, int contador)
       iMas1=HAUX[(i+1)*N+j];
       jMas1=HAUX[i*N+(j+1)];
 
-      temp[(threadIdx.x*blockDim.x)+threadIdx.y]= HAUX[i*N+j]+ (c*c)*((dt/dd)*(dt/dd))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
+      temp[(threadIdx.y*blockDim.y)+threadIdx.x]= HAUX[i*N+j]+ (c*c)*((dt/dd)*(dt/dd))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
       
     }
     else //caso normal
@@ -40,11 +42,11 @@ __global__ void wave(float *H1, float *H2, float*HAUX, int N, int contador)
       jMenos1=HAUX[i*N+(j-1)];
       iMas1=HAUX[(i+1)*N+j];
       jMas1=HAUX[i*N+(j+1)];
-      temp[(threadIdx.x*blockDim.x)+threadIdx.y]= 2*HAUX[i*N+j]-H2[i*N+j] +(c*c)*((dt/dd)*(dt/dd))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
+      temp[(threadIdx.y*blockDim.y)+threadIdx.x]= 2*HAUX[i*N+j]-H2[i*N+j] +(c*c)*((dt/dd)*(dt/dd))*(iMas1+iMenos1+jMenos1+jMas1-4*HAUX[i*N+j]);
      
     }
     
-    H1[i*N+j] =temp[(threadIdx.x*blockDim.x)+threadIdx.y];
+    H1[i*N+j] =temp[(threadIdx.y*blockDim.y)+threadIdx.x];
   }
     
   
@@ -54,10 +56,12 @@ __global__ void wave(float *H1, float *H2, float*HAUX, int N, int contador)
 __global__ void swap(float *origen,float *destino, int N)
 {
   int j, i;
-  i = blockDim.x*blockIdx.x + threadIdx.x;  // global index x (horizontal)
-  j = blockDim.y*blockIdx.y + threadIdx.y;  // global index y (vertical)
-  if (i >1 && i<N-1 && j>1 && j<N-1 )
+  j = blockDim.x*blockIdx.x + threadIdx.x;  // global index x (horizontal)
+  i = blockDim.y*blockIdx.y + threadIdx.y;  // global index y (vertical)
+    
+  if (i >1 && i<N-2 && j>1 && j<N-2 ){
     destino[i*N+j]=origen[i*N+j];
+  }
   
 }
 
@@ -156,7 +160,6 @@ __host__ int main(int argc, char *argv[])
   blocksize.x = x;
   blocksize.y = y;
 
-  //printf("El tamaño de N: %d, gridZise: %d * %d\n",N,gridsize.x,gridsize.y);
   int contador = 1;
 
   int numBlocks = gridsize.x*gridsize.y;
@@ -176,8 +179,9 @@ __host__ int main(int argc, char *argv[])
     activeWarps = numBlocks * TamBloque / prop.warpSize;
     maxWarps = prop.maxThreadsPerMultiProcessor / prop.warpSize;
 
-    printf ("La ocupancia %lf  active/max*100 \n",(double)activeWarps / maxWarps * 100);
-    printf ("MAx warp: %d   y  activos warp : %d \n",maxWarps,activeWarps);
+    printf ("Max warp: %d   y  activos warp : %d \n",maxWarps,activeWarps);
+    printf ("La ocupancia %lf  \n",(double)activeWarps / maxWarps * 100);
+    
 
 
 
@@ -193,25 +197,28 @@ __host__ int main(int argc, char *argv[])
   //Se ejecuta el kernel
   while( contador <= T)
   {
-    swap<<<gridsize, blocksize>>>(d_H1,d_HAUX,N);
+    swap<<<gridsize, blocksize,x*y*sizeof(float)>>>(d_H1,d_HAUX,N);
     cudaDeviceSynchronize();
-    wave<<<gridsize, blocksize, x*y*sizeof(float)>>>(d_H1, d_H2, d_HAUX, N, contador);
+    wave<<<gridsize, blocksize, x*y*sizeof(float)>>>(d_H1, d_H2, d_HAUX, N, contador);    
+    cudaDeviceSynchronize();
+    contador++;
+    
+    swap<<<gridsize, blocksize,x*y*sizeof(float)>>>(d_HAUX,d_H2,N);
     cudaError_t err = cudaGetLastError();
             if (err != cudaSuccess)
               printf("Error: %s\n", cudaGetErrorString(err));
-    swap<<<gridsize, blocksize>>>(d_HAUX,d_H2,N);
     cudaDeviceSynchronize();
-    contador++;
+    
 
   }
   time_t finish = time(NULL);
   cudaEventRecord(stop2, 0);
   cudaEventSynchronize(stop2);
   cudaEventElapsedTime(&gpu_time, start2, stop2);
-  printf("Time spent: %.5f\n", gpu_time);
+  printf("Time spent: %.5f [ms]\n", gpu_time);
   cudaEventDestroy(start2);
   cudaEventDestroy(stop2);
-  printf("Wall-Clock: %.5f\n", (double)(finish - start));
+  printf("Wall-Clock: %.5f [s]\n", (double)(finish - start));
 
 
 
